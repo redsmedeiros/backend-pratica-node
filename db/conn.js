@@ -7,4 +7,11 @@ async function main(){
     //criar uma metodo await de conexao
     mongoose.set("strictQuery", true);
     await mongoose.connect('mongodb://127.0.0.1:27017/praticaUm')
+
+    console.log('Conectado ao MONGO')
 }
+
+main().catch((err) => console.log(err))
+
+//exportar o mongoose
+module.exports = mongoose
