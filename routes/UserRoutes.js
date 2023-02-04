@@ -9,6 +9,7 @@ router.post('/login', UserController.login)
 
 //rotas de get
 router.get('/checkuser', UserController.checkUser)
+router.get('/:id', UserController.getUserById)
 
 //exportar o arquivo
 module.exports = router

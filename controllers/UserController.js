@@ -1,7 +1,11 @@
 //importar o models da tabela de usuarios
 const User = require('../models/User')
 const brcypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
+
+//helpers
 const createUserToken = require('../helpers/create-user-token')
+const getToken = require('../helpers/get-token')
 
 //exportar a classe do controler de User
 module.exports = class UserController{
@@ -64,7 +68,7 @@ module.exports = class UserController{
             name: name,
             email: email,
             phone: phone,
-            password, passwordHash
+            password: passwordHash
         })
 
         //fazer um try para salvar no banco
@@ -128,6 +132,15 @@ module.exports = class UserController{
         //fazer a verificação do token nos headers
         if(req.headers.authorization){
 
+            //recuperar o token
+            const token = getToken(req)
+            //decodificar o token
+            const decoded = jwt.verify(token, 'nossosecret')
+            //buscar o usuario com o id decodificado
+            correntUser = await User.findById(decoded.id)
+            //apagar a senha
+            currentUser.password = undefined
+
         }else{
             //se não veio o token o usuario é invaldio
             currentUser = null
@@ -135,6 +148,26 @@ module.exports = class UserController{
 
         //enviar o usuario
         res.status(200).send(currentUser)
+    }
+
+    static async getUserById(req, res){
+
+        //pegar o id
+        const  id  = req.params.id
+
+        //encontrar o usuario pelo id - e tirar o campo de password
+        const user = await User.findById(id).select('-password')
+
+        //se não encontrar enviar a mensagem padrão
+        if(!user){
+
+            res.status(422).json({message: 'Usuário não encontrado'})
+            return
+        }
+
+        //se encontrar retornar o usuario
+        res.status(200).json({user})
+
     }
 
 }
