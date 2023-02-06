@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 //helpers
 const createUserToken = require('../helpers/create-user-token')
 const getToken = require('../helpers/get-token')
+const getUserByToken = require('../helpers/get-user-by-token')
 
 //exportar a classe do controler de User
 module.exports = class UserController{
@@ -167,6 +168,83 @@ module.exports = class UserController{
 
         //se encontrar retornar o usuario
         res.status(200).json({user})
+
+    }
+
+    static async editUser(req, res){
+       //pegar o id dos params da requisição 
+       const id = req.params.id
+
+       //pegar o usuario atraés do token
+       const token = getToken(req)
+       const user = await getUserByToken(token)
+
+       //pegar as variaveis do corpo da requisição que vem do form
+       const { name, email, phone, password, confirmpassword} = req.body
+
+       //definir a variavel de imagem
+       let image = ''
+
+       //fazer a validação de existencias do dados obrigatorios
+        if(!name){
+            res.status(422).json({message: 'Nome é obrigatório'})
+             return
+        }
+
+        user.name = name
+
+        if(!email){
+            res.status(422).json({message: 'Email é obrigatório'})
+            return
+        }
+
+        const userExist = await User.findOne({email: email})
+
+        // verificar se um usuario com esse email foi encontrado no bd e se pertence a esse usuário
+        if(user.email !== email && userExist){
+            res.status(422).json({message: 'Utilize outro email'})
+            return
+        }
+
+        user.email = email
+
+        if(!phone){
+            res.status(422).json({message: 'Telefone é obrigatório'})
+            return
+        }
+
+        user.phone = phone
+
+        //verificar se a senha é igual a da confirmação
+        if(password != confirmpassword){
+            res.status(422).json({message: 'Senha precisa ser igual a confirmação'})
+            return
+
+        }else if(password === confirmpassword && password != null){
+
+            //criar a senha criptografada
+            const salt = await brcypt.genSalt(12)
+            const passwordHash = await brcypt.hash(password, salt)
+
+            user.password = passwordHash
+        }
+
+        //salvar no banco
+        try{
+
+            const updateUser = await User.findOneAndUpdate(
+                { _id: user._id},
+                {$set: user},
+                {new: true}
+                )
+            
+            res.status(200).json({message: 'Usuário Atualizado'})
+            
+        }catch(err){
+
+            res.status(500).json({message: err})
+        }
+
 
     }
 
