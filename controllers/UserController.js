@@ -232,14 +232,14 @@ module.exports = class UserController{
         //salvar no banco
         try{
 
-            const updateUser = await User.findOneAndUpdate(
+            await User.findOneAndUpdate(
                 { _id: user._id},
                 {$set: user},
                 {new: true}
                 )
             
             res.status(200).json({message: 'Usuário Atualizado'})
-            
+
         }catch(err){
 
             res.status(500).json({message: err})
