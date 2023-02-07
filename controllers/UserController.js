@@ -182,8 +182,11 @@ module.exports = class UserController{
        //pegar as variaveis do corpo da requisição que vem do form
        const { name, email, phone, password, confirmpassword} = req.body
 
-       //definir a variavel de imagem
-       let image = ''
+
+       //verificar se veio algo da requisição no file
+       if(req.file){
+            user.image = req.file.name
+       }
 
        //fazer a validação de existencias do dados obrigatorios
         if(!name){
