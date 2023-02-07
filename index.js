@@ -19,5 +19,8 @@ app.use(express.static('public'))
 const UserRoutes = require('./routes/UserRoutes')
 app.use('/users', UserRoutes)
 
+const PetRoutes = require('./routes/PetRoutes')
+app.use('pets', PetRoutes)
+
 //escutar a porta de back
 app.listen(5000)
