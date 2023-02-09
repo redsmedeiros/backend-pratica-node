@@ -4,6 +4,7 @@ const Pet = require('../models/Pet')
 //importar os helpers
 const getToken = require('../helpers/get-token')
 const getUserByToken = require('../helpers/get-user-by-token')
+const ObjectId = require('mongoose').Types.ObjectId
 
 //exportar a classe de controller
 module.exports = class PetController{
@@ -18,6 +19,7 @@ module.exports = class PetController{
         const available = true 
 
         //fazer o upload das imagens
+        const images = req.files
 
         //verificar se as variaveis vieram
         if(!name){
@@ -40,8 +42,13 @@ module.exports = class PetController{
             return
         }
 
-        //pegar o usuario dono do pet do banco - aquele que cadastrou
+        if(images.length === 0){
+            res.status(422).json({message: 'A imagem é obrigatória'})
+        }
 
+        //pegar o usuario dono do pet do banco - aquele que cadastrou
+        const token = getToken(req)
+        const user = await getUserByToken(token)
 
         //criar um ibj desse pet atraves do model
         const pet = new Pet({
@@ -52,10 +59,148 @@ module.exports = class PetController{
             available: available,
             images: [],
             user: {
-
+                _id: user._id,
+                name: user.name,
+                image: user.image,
+                user: user.phone
             }
         })
 
+        //usar o metodo map para executar um metodo no array de images
+        images.map((image)=>{
+            pet.images.push(image.files)
+        })
+
+        //salvar o usuario no banco
+        try{
+
+             //atraves do model salvar no banco
+             const newPet = await pet.save()
+
+             //retornar o pet
+             res.status(201).json({message: 'Pet cadastrado com sucesso', newPet})
+
+        }catch(error){
+
+            res.status(500).json({message: error})
+        }
+
+    }
+
+    //rotas para pegar todos os pets
+    static async getAll(req, res){
+
+        //trazer todos os pets - usar o metodo sort para filtrar os mais novos
+        const pets = await Pet.find().sort('-createdAt')
+
+        //retornar a busca
+        res.status(200).json({pets: pets})
+
+    }
+
+    //pegar os pets do usuario
+    static async getAllUserPets(req, res){
+
+        //pegar o usuario atraves do token - filtrar com o id do usuario
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        const pets = await Pet.find({'adopter._id': adopter._id}).sort('-createdAt')
+
+        //retornar os pets do usuario
+        res.status(200).json({pets})
+
+    }
+
+    //pegar todas as adoções do usuário
+    static async getAllUserAdoptions(req, res){
+
+        //obter o usuario atraves do token
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+
+    }
+
+    //pegar o pet por id
+    static async getPetById(req, res){
+
+        //pegar o id do params
+        const id = req.params.id
+
+        //verificar se o id é válido
+        if(!ObjectId.isValid(id)){
+            res.status(422).json({message: 'ID inválido'})
+            return;
+        }
+
+        //verificar se existe um pet com esse id
+        const pet = await Pet.findOne({_id: id})
+
+        if(!pet){
+            res.status(404).json({message: 'Pet não cadastrado'})
+            return;
+        }
+
+        //retornar o pet
+        res.status(200).json({pet})
+    }
+
+    //função para deletar o pet
+    static async removePetById(req, res){
+
+        //pegar o id atraves dos params da req
+        const id = req.params.id
+
+        //verificar se o id é válido
+        if(!ObjectId.isValid(id)){
+            res.status(422).json({message: 'ID inválido'})
+            return;
+        }
+
+        //verificar se o pet está no banco
+        const pet = await pet.findOne({_id: id})
+
+        if(!pet){
+            res.status(404).json({message: 'Pet não cadastrado'})
+            return;
+        }
+
+        //verificar se o usuário cadastrou esse pet
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        //se um id for totalmente diferente do outro
+        if(pet.user._id.toString() !== user._id.toString()){
+            res.status(422).json({message: 'Falha...'})
+            return;
+        }
+
+        //deleter o pet
+        await Pet.findByIdAndRemove(id)
+
+        res.status(200).json({message: 'Pet removido com sucesso'})
+
+    }
+
+    //atualizar pet
+    static async updatePet(req, res){
+
+        //pegar o id dos params da req
+        const id = req.params.id
+
+        //pegar os dados vindos do corpo da requisição - form
+        const { name, age, weigth, color, available } = req.body
+
+        //pegar dos arquivos de requisição as imagens
+        const images = req.files
+
+        //objeto vazio - dados que serão atualizados para o pet
+        const updatedData = {}
+
+        //fazer as validações
+
+       
     }
 
 }
