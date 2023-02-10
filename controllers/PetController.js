@@ -198,9 +198,141 @@ module.exports = class PetController{
         //objeto vazio - dados que serão atualizados para o pet
         const updatedData = {}
 
-        //fazer as validações
+        //fazer as validações de exitencia
+        const pet = await Pet.findOne({_id: id})
+
+        if(!pet){
+            res.status(404).json({message: 'Pet não encontado'})
+            return;
+        }
+
+        //verificar se o usuário cadastrou esse pet
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        //se um id for totalmente diferente do outro
+        if(pet.user._id.toString() !== user._id.toString()){
+            res.status(422).json({message: 'Falha...'})
+            return;
+        }
+
+          //verificar se as variaveis vieram
+          if(!name){
+            res.status(422).json({message: "O nome é obrigatório"})
+            return
+        }else{
+
+            updatedData.name = name
+        }
+
+        if(!age){
+            res.status(422).json({message: "A idade é obrigatória"})
+            return
+        }else{
+            updatedData.age = age
+        }
 
        
+
+        if(!weigth){
+            res.status(422).json({message: "O peso é obrigatório"})
+            return
+        }else{
+            updatedData.weigth = weigth
+        }
+
+      
+
+        if(!color){
+            res.status(422).json({message: 'A cor é obrigatória'})
+            return
+        }else{
+            updatedData.color = color
+        }
+
+       
+
+        if(images.length === 0){
+
+            res.status(422).json({message: 'A imagem é obrigatória'})
+
+        }else{
+
+            updatedData.images = []
+
+            images.map((images)=>{
+                updatedData.images.push(image.filename)
+
+            })
+        }
+
+        await Pet.findByIdAndUpdate(id, updatedData)
+
+        res.status(200).json({message: 'atualizado com sucesso'})
+
+       
+    }
+
+
+    static async schedule(req, res){
+
+        //pegar o id do pet
+        const id = req.params.id
+
+        //verificar a existencia do pet no banco
+        const pet = await Pet.findById(id)
+
+        if(!pet){
+            res.status(404).json({message: 'Não encontrado'})
+            return
+        }
+
+        //verificar se o pet pertence ao usuario
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+
+        if(pet.user._id.equals(user._id)){
+            res.status(422).json({message: 'Você não pode agendar visita para o próprio pet'})
+            return;
+        }
+
+        //verificar se o usuario já agendou visita para o pet
+        if(pet.adopter){
+            if(pet.adopter._id.equals(user._id)){
+                res.status(422).json({message: 'Você já agendou uma visita para esse pet'})
+                return
+            }
+        }
+
+        //adicionar usuario para a visita do pet
+        pet.adopter = {
+            _id: user._id,
+            name: user.name,
+            image: user.image
+        }
+
+        await Pet.findByIdAndUpdate(id, pet)
+
+        res.status(200).json({message: `A visita foi agendada com sucesso. Entre em contato com ${pet.user.name}`})
+
+
+    }
+
+    static async concludeAdoption(req, res){
+
+        const id = req.params.id
+
+          //verificar a existencia do pet no banco
+          const pet = await Pet.findById(id)
+
+          if(!pet){
+              res.status(404).json({message: 'Não encontrado'})
+              return
+          }
+
+          //dizer que o pet não esta disponivel
+          pet.available = false
+
     }
 
 }
